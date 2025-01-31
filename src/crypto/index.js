@@ -4,11 +4,11 @@
  * @namespace crypto
  */
 
-const net = require('net');
-const { promisify } = require('util');
-const crypto = require('crypto');
-const asn1js = require('asn1js');
-const x509 = require('@peculiar/x509');
+const net = require("net");
+const { promisify } = require("util");
+const crypto = require("crypto");
+const asn1js = require("asn1js");
+const x509 = require("@peculiar/x509");
 
 const randomInt = promisify(crypto.randomInt);
 const generateKeyPair = promisify(crypto.generateKeyPair);
@@ -17,10 +17,10 @@ const generateKeyPair = promisify(crypto.generateKeyPair);
 x509.cryptoProvider.set(crypto.webcrypto);
 
 /* id-ce-subjectAltName - https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.6 */
-const subjectAltNameOID = '2.5.29.17';
+const subjectAltNameOID = "2.5.29.17";
 
 /* id-pe-acmeIdentifier - https://datatracker.ietf.org/doc/html/rfc8737#section-6.1 */
-const alpnAcmeIdentifierOID = '1.3.6.1.5.5.7.1.31';
+const alpnAcmeIdentifierOID = "1.3.6.1.5.5.7.1.31";
 
 /**
  * Determine key type and info by attempting to derive public key
@@ -37,14 +37,12 @@ function getKeyInfo(keyPem) {
         publicKey: crypto.createPublicKey(keyPem),
     };
 
-    if (result.publicKey.asymmetricKeyType === 'rsa') {
+    if (result.publicKey.asymmetricKeyType === "rsa") {
         result.isRSA = true;
-    }
-    else if (result.publicKey.asymmetricKeyType === 'ec') {
+    } else if (result.publicKey.asymmetricKeyType === "ec") {
         result.isECDSA = true;
-    }
-    else {
-        throw new Error('Unable to parse key information, unknown format');
+    } else {
+        throw new Error("Unable to parse key information, unknown format");
     }
 
     return result;
@@ -68,11 +66,11 @@ function getKeyInfo(keyPem) {
  */
 
 async function createPrivateRsaKey(modulusLength = 2048) {
-    const pair = await generateKeyPair('rsa', {
+    const pair = await generateKeyPair("rsa", {
         modulusLength,
         privateKeyEncoding: {
-            type: 'pkcs8',
-            format: 'pem',
+            type: "pkcs8",
+            format: "pem",
         },
     });
 
@@ -106,12 +104,12 @@ exports.createPrivateKey = createPrivateRsaKey;
  * ```
  */
 
-exports.createPrivateEcdsaKey = async (namedCurve = 'P-256') => {
-    const pair = await generateKeyPair('ec', {
+exports.createPrivateEcdsaKey = async (namedCurve = "P-256") => {
+    const pair = await generateKeyPair("ec", {
         namedCurve,
         privateKeyEncoding: {
-            type: 'pkcs8',
-            format: 'pem',
+            type: "pkcs8",
+            format: "pem",
         },
     });
 
@@ -134,8 +132,8 @@ exports.getPublicKey = (keyPem) => {
     const info = getKeyInfo(keyPem);
 
     const publicKey = info.publicKey.export({
-        type: info.isECDSA ? 'spki' : 'pkcs1',
-        format: 'pem',
+        type: info.isECDSA ? "spki" : "pkcs1",
+        format: "pem",
     });
 
     return Buffer.from(publicKey);
@@ -157,14 +155,16 @@ exports.getPublicKey = (keyPem) => {
 
 function getJwk(keyPem) {
     const jwk = crypto.createPublicKey(keyPem).export({
-        format: 'jwk',
+        format: "jwk",
     });
 
     /* Sort keys */
-    return Object.keys(jwk).sort().reduce((result, k) => {
-        result[k] = jwk[k];
-        return result;
-    }, {});
+    return Object.keys(jwk)
+        .sort()
+        .reduce((result, k) => {
+            result[k] = jwk[k];
+            return result;
+        }, {});
 }
 
 exports.getJwk = getJwk;
@@ -183,27 +183,39 @@ async function getWebCryptoKeyPair(keyPem) {
 
     /* Signing algorithm */
     const sigalg = {
-        name: 'RSASSA-PKCS1-v1_5',
-        hash: { name: 'SHA-256' },
+        name: "RSASSA-PKCS1-v1_5",
+        hash: { name: "SHA-256" },
     };
 
     if (info.isECDSA) {
-        sigalg.name = 'ECDSA';
+        sigalg.name = "ECDSA";
         sigalg.namedCurve = jwk.crv;
 
-        if (jwk.crv === 'P-384') {
-            sigalg.hash.name = 'SHA-384';
+        if (jwk.crv === "P-384") {
+            sigalg.hash.name = "SHA-384";
         }
 
-        if (jwk.crv === 'P-521') {
-            sigalg.hash.name = 'SHA-512';
+        if (jwk.crv === "P-521") {
+            sigalg.hash.name = "SHA-512";
         }
     }
 
     /* Decode PEM and import into CryptoKeyPair */
     const privateKeyDec = x509.PemConverter.decodeFirst(keyPem.toString());
-    const privateKey = await crypto.webcrypto.subtle.importKey('pkcs8', privateKeyDec, sigalg, true, ['sign']);
-    const publicKey = await crypto.webcrypto.subtle.importKey('jwk', jwk, sigalg, true, ['verify']);
+    const privateKey = await crypto.webcrypto.subtle.importKey(
+        "pkcs8",
+        privateKeyDec,
+        sigalg,
+        true,
+        ["sign"],
+    );
+    const publicKey = await crypto.webcrypto.subtle.importKey(
+        "jwk",
+        jwk,
+        sigalg,
+        true,
+        ["verify"],
+    );
 
     return [{ privateKey, publicKey }, sigalg];
 }
@@ -221,8 +233,9 @@ function splitPemChain(chainPem) {
     }
 
     /* Decode into array and re-encode */
-    return x509.PemConverter.decodeWithHeaders(chainPem)
-        .map((params) => x509.PemConverter.encode([params]));
+    return x509.PemConverter.decodeWithHeaders(chainPem).map((params) =>
+        x509.PemConverter.encode([params]),
+    );
 }
 
 exports.splitPemChain = splitPemChain;
@@ -239,12 +252,12 @@ exports.getPemBodyAsB64u = (pem) => {
     const chain = splitPemChain(pem);
 
     if (!chain.length) {
-        throw new Error('Unable to parse PEM body from string');
+        throw new Error("Unable to parse PEM body from string");
     }
 
     /* Select first object, extract body and convert to b64u */
     const dec = x509.PemConverter.decodeFirst(chain[0]);
-    return Buffer.from(dec).toString('base64url');
+    return Buffer.from(dec).toString("base64url");
 };
 
 /**
@@ -256,12 +269,14 @@ exports.getPemBodyAsB64u = (pem) => {
  */
 
 function parseDomains(input) {
-    const commonName = input.subjectName.getField('CN').pop() || null;
+    const commonName = input.subjectName.getField("CN").pop() || null;
     const altNamesRaw = input.getExtension(subjectAltNameOID);
     let altNames = [];
 
     if (altNamesRaw) {
-        const altNamesExt = new x509.SubjectAlternativeNameExtension(altNamesRaw.rawData);
+        const altNamesExt = new x509.SubjectAlternativeNameExtension(
+            altNamesRaw.rawData,
+        );
         altNames = altNames.concat(altNamesExt.names.items.map((i) => i.value));
     }
 
@@ -326,7 +341,7 @@ exports.readCertificateInfo = (certPem) => {
 
     return {
         issuer: {
-            commonName: cert.issuerName.getField('CN').pop() || null,
+            commonName: cert.issuerName.getField("CN").pop() || null,
         },
         domains: parseDomains(cert),
         notBefore: cert.notBefore,
@@ -347,12 +362,12 @@ exports.readCertificateInfo = (certPem) => {
 
 function getCsrAsn1CharStringType(field) {
     switch (field) {
-        case 'C':
-            return 'printableString';
-        case 'E':
-            return 'ia5String';
+        case "C":
+            return "printableString";
+        case "E":
+            return "ia5String";
         default:
-            return 'utf8String';
+            return "utf8String";
     }
 }
 
@@ -388,10 +403,12 @@ function createCsrSubject(input) {
  */
 
 function createSubjectAltNameExtension(altNames) {
-    return new x509.SubjectAlternativeNameExtension(altNames.map((value) => {
-        const type = net.isIP(value) ? 'ip' : 'dns';
-        return { type, value };
-    }));
+    return new x509.SubjectAlternativeNameExtension(
+        altNames.map((value) => {
+            const type = net.isIP(value) ? "ip" : "dns";
+            return { type, value };
+        }),
+    );
 }
 
 /**
@@ -453,12 +470,11 @@ function createSubjectAltNameExtension(altNames) {
 exports.createCsr = async (data, keyPem = null) => {
     if (!keyPem) {
         keyPem = await createPrivateRsaKey(data.keySize);
-    }
-    else if (!Buffer.isBuffer(keyPem)) {
+    } else if (!Buffer.isBuffer(keyPem)) {
         keyPem = Buffer.from(keyPem);
     }
 
-    if (typeof data.altNames === 'undefined') {
+    if (typeof data.altNames === "undefined") {
         data.altNames = [];
     }
 
@@ -470,13 +486,16 @@ exports.createCsr = async (data, keyPem = null) => {
     /* CryptoKeyPair and signing algorithm from private key */
     const [keys, signingAlgorithm] = await getWebCryptoKeyPair(keyPem);
 
-    const extensions = [
-        /* https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.3 */
-        new x509.KeyUsagesExtension(x509.KeyUsageFlags.digitalSignature | x509.KeyUsageFlags.keyEncipherment), // eslint-disable-line no-bitwise
-
-        /* https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.6 */
-        createSubjectAltNameExtension(data.altNames),
-    ];
+    // UPSLATE: SSL.com will refuse to issue the certificate if keyEncipherment is present for ECC.
+    const extensions =
+        signingAlgorithm.name === "ECDSA"
+            ? [new x509.KeyUsagesExtension(x509.KeyUsageFlags.digitalSignature)]
+            : [
+                  new x509.KeyUsagesExtension(
+                      x509.KeyUsageFlags.digitalSignature |
+                          x509.KeyUsageFlags.keyEncipherment,
+                  ),
+              ];
 
     /* Create CSR */
     const csr = await x509.Pkcs10CertificateRequestGenerator.create({
@@ -495,7 +514,7 @@ exports.createCsr = async (data, keyPem = null) => {
     });
 
     /* Done */
-    const pem = csr.toString('pem');
+    const pem = csr.toString("pem");
     return [keyPem, Buffer.from(pem)];
 };
 
@@ -521,11 +540,14 @@ exports.createCsr = async (data, keyPem = null) => {
  * ```
  */
 
-exports.createAlpnCertificate = async (authz, keyAuthorization, keyPem = null) => {
+exports.createAlpnCertificate = async (
+    authz,
+    keyAuthorization,
+    keyPem = null,
+) => {
     if (!keyPem) {
         keyPem = await createPrivateRsaKey();
-    }
-    else if (!Buffer.isBuffer(keyPem)) {
+    } else if (!Buffer.isBuffer(keyPem)) {
         keyPem = Buffer.from(keyPem);
     }
 
@@ -541,7 +563,10 @@ exports.createAlpnCertificate = async (authz, keyAuthorization, keyPem = null) =
 
     const extensions = [
         /* https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.3 */
-        new x509.KeyUsagesExtension(x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign, true), // eslint-disable-line no-bitwise
+        new x509.KeyUsagesExtension(
+            x509.KeyUsageFlags.keyCertSign | x509.KeyUsageFlags.cRLSign,
+            true,
+        ), // eslint-disable-line no-bitwise
 
         /* https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.9 */
         new x509.BasicConstraintsExtension(true, 2, true),
@@ -554,9 +579,16 @@ exports.createAlpnCertificate = async (authz, keyAuthorization, keyPem = null) =
     ];
 
     /* ALPN extension */
-    const payload = crypto.createHash('sha256').update(keyAuthorization).digest('hex');
-    const octstr = new asn1js.OctetString({ valueHex: Buffer.from(payload, 'hex') });
-    extensions.push(new x509.Extension(alpnAcmeIdentifierOID, true, octstr.toBER()));
+    const payload = crypto
+        .createHash("sha256")
+        .update(keyAuthorization)
+        .digest("hex");
+    const octstr = new asn1js.OctetString({
+        valueHex: Buffer.from(payload, "hex"),
+    });
+    extensions.push(
+        new x509.Extension(alpnAcmeIdentifierOID, true, octstr.toBER()),
+    );
 
     /* Self-signed ALPN certificate */
     const cert = await x509.X509CertificateGenerator.createSelfSigned({
@@ -572,7 +604,7 @@ exports.createAlpnCertificate = async (authz, keyAuthorization, keyPem = null) =
     });
 
     /* Done */
-    const pem = cert.toString('pem');
+    const pem = cert.toString("pem");
     return [keyPem, Buffer.from(pem)];
 };
 
@@ -585,20 +617,27 @@ exports.createAlpnCertificate = async (authz, keyAuthorization, keyPem = null) =
  */
 
 exports.isAlpnCertificateAuthorizationValid = (certPem, keyAuthorization) => {
-    const expected = crypto.createHash('sha256').update(keyAuthorization).digest('hex');
+    const expected = crypto
+        .createHash("sha256")
+        .update(keyAuthorization)
+        .digest("hex");
 
     /* Attempt to locate ALPN extension */
     const cert = new x509.X509Certificate(certPem);
     const ext = cert.getExtension(alpnAcmeIdentifierOID);
 
     if (!ext) {
-        throw new Error('Unable to locate ALPN extension within parsed certificate');
+        throw new Error(
+            "Unable to locate ALPN extension within parsed certificate",
+        );
     }
 
     /* Decode extension value */
     const parsed = asn1js.fromBER(ext.value);
-    const result = Buffer.from(parsed.result.valueBlock.valueHexView).toString('hex');
+    const result = Buffer.from(parsed.result.valueBlock.valueHexView).toString(
+        "hex",
+    );
 
     /* Return true if match */
-    return (result === expected);
+    return result === expected;
 };
