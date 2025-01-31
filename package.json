@@ -1,12 +1,12 @@
 {
-    "name": "acme-client",
-    "description": "Simple and unopinionated ACME client",
+    "name": "@troplo/acme-client",
+    "description": "Simple and unopinionated ACME client (Upslate fork)",
     "author": "nmorsman",
     "version": "5.4.0",
     "main": "src/index.js",
     "types": "types/index.d.ts",
     "license": "MIT",
-    "homepage": "https://github.com/publishlab/node-acme-client",
+    "homepage": "https://github.com/Upslate/node-acme-client",
     "engines": {
         "node": ">= 16"
     },
@@ -42,7 +42,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/publishlab/node-acme-client"
+        "url": "https://github.com/Upslate/node-acme-client"
     },
     "keywords": [
         "acme",
